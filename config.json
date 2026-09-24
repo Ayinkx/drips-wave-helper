@@ -1,0 +1,47 @@
+{
+  "github_username": "Ayinkx",
+  "display_name": "Ayinkx",
+  "full_name": "Lawal Olayinka Awal",
+  "roles": [
+    "Python & Backend Developer",
+    "Open Source Contributor"
+  ],
+  "skills": [
+    "Python",
+    "Flask",
+    "FastAPI",
+    "REST API",
+    "Docker",
+    "SQL",
+    "MySQL",
+    "JavaScript",
+    "TypeScript",
+    "React",
+    "Node",
+    "HTML",
+    "CSS",
+    "Rust",
+    "Soroban",
+    "Stellar",
+    "Web3",
+    "Git",
+    "Linux",
+    "Bash",
+    "Documentation",
+    "Testing",
+    "pytest"
+  ],
+  "labels": [
+    "stellar-wave"
+  ],
+  "slots": 15,
+  "pitch": "I'm a self-taught Python & backend developer and open-source contributor. I focus on clean, tested code and love shipping real features end to end.",
+  "links": {
+    "github": "https://github.com/Ayinkx",
+    "portfolio": "https://ayinkx-portfolio.vercel.app",
+    "linkedin": "https://www.linkedin.com/in/ayinkx"
+  },
+  "addons": [
+    "Please let me know if you'd like more detail on my plan."
+  ]
+}

@@ -42,8 +42,9 @@ DATA = ROOT / "data"
 APPS = ROOT / "applications"
 CONFIG_PATH = ROOT / "config.json"
 ISSUES_PATH = DATA / "issues.json"
-STATE_PATH = DATA / "state.json"
+STATE_PATH = ROOT / "state.json"
 DASHBOARD_PATH = ROOT / "dashboard.html"
+ALERT_PATH = ROOT / "alert.md"
 
 API = "https://api.github.com"
 
@@ -215,7 +216,7 @@ def fetch_issues(cfg: dict) -> list[dict]:
             log(f"   - {k}")
     else:
         log("No new issues since last run.")
-    return result
+    return result, new_keys
 
 
 def score_issue(it: dict, cfg: dict) -> tuple[int, list[str]]:
@@ -474,6 +475,47 @@ document.querySelectorAll('.copy').forEach(function(b){{
     webbrowser.open(DASHBOARD_PATH.as_uri())
 
 
+def cmd_ci(args, cfg):
+    """Used by the GitHub Actions watcher: detect new issues and write alert.md."""
+    issues, new_keys = fetch_issues(cfg)
+    if not new_keys:
+        log("No new issues — nothing to alert.")
+        if ALERT_PATH.exists():
+            ALERT_PATH.unlink()
+        return
+
+    rows = ranked(cfg)
+    new_set = set(new_keys)
+    new_rows = [r for r in rows if r["key"] in new_set]
+
+    out = [
+        f"# 🆕 {len(new_rows)} new Stellar Wave issue(s)",
+        "",
+        "Fresh issues matching your skills. **Open each one to apply** — this is just an alert.",
+        "",
+        "| # | Issue | Score | Matched |",
+        "|---|-------|------:|---------|",
+    ]
+    for i, r in enumerate(new_rows, 1):
+        out.append(f"| {i} | [{r['key']}]({r['url']}) — {r['title'][:70]} | {r['score']} | {', '.join(r['matched'][:4]) or '—'} |")
+    out += ["", "## Drafts", ""]
+    for r in new_rows:
+        out += [
+            f"### [{r['key']}]({r['url']}) — {r['title']}",
+            "",
+            "<details><summary>Application draft</summary>",
+            "",
+            "```",
+            draft_text(r, r["matched"], cfg).strip(),
+            "```",
+            "",
+            "</details>",
+            "",
+        ]
+    ALERT_PATH.write_text("\n".join(out), encoding="utf-8")
+    log(f"Wrote {ALERT_PATH.name} with {len(new_rows)} new issue(s).")
+
+
 def cmd_run(args, cfg):
     fetch_issues(cfg)
     rows = ranked(cfg)
@@ -521,6 +563,7 @@ def main():
     po.set_defaults(func=cmd_open_issue)
 
     sub.add_parser("dashboard", help="build dashboard.html").set_defaults(func=cmd_dashboard)
+    sub.add_parser("ci", help="CI mode: detect new issues and write alert.md").set_defaults(func=cmd_ci)
     sub.add_parser("run", help="fetch + draft remaining slots + dashboard").set_defaults(func=cmd_run)
 
     args = p.parse_args()

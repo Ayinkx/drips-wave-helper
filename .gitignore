@@ -3,4 +3,4 @@ __pycache__/
 data/
 applications/
 dashboard.html
-config.json
+alert.md
