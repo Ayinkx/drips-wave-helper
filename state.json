@@ -106,5 +106,27 @@
     "Ali6nXI/stellar-drips#1",
     "OtowoOrg/Stellar-K8s#151"
   ],
-  "last_fetch": "2026-09-24T13:20:48"
+  "last_fetch": "2026-09-24T13:20:48",
+  "seen_drips": [
+    "MDTechLabs/BridgeWise#1059",
+    "MDTechLabs/BridgeWise#1063",
+    "MDTechLabs/GasGuard#885",
+    "SoroScan/soroscan#1409",
+    "SoroScan/soroscan#1411",
+    "SoroScan/soroscan#1418",
+    "SorobanCrashLab/soroban-crashlab#1646",
+    "SorobanCrashLab/soroban-crashlab#1647",
+    "StellarLock/StellarLock#820",
+    "soroban-testkit/soroban-testkit#230",
+    "soroban-testkit/soroban-testkit#231",
+    "soroban-testkit/soroban-testkit#232",
+    "soroban-testkit/soroban-testkit#233",
+    "yosemite01/stellar-creator-portfolio#1416",
+    "yosemite01/stellar-creator-portfolio#1418",
+    "yosemite01/stellar-creator-portfolio#1419",
+    "yosemite01/stellar-creator-portfolio#1420",
+    "yosemite01/stellar-creator-portfolio#1421",
+    "yosemite01/stellar-creator-portfolio#1424",
+    "yosemite01/stellar-creator-portfolio#1427"
+  ]
 }

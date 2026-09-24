@@ -20,6 +20,7 @@ Quick start:
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import html
 import json
@@ -47,6 +48,8 @@ DASHBOARD_PATH = ROOT / "dashboard.html"
 ALERT_PATH = ROOT / "alert.md"
 
 API = "https://api.github.com"
+DRIPS_ISSUES_URL = "https://www.drips.network/wave/stellar/issues"
+DEFAULT_WAVE_PROGRAM = "fdc01c95-806f-4b6a-998b-a6ed37e0d81b"
 
 DEFAULT_CONFIG = {
     "github_username": "Ayinkx",
@@ -60,6 +63,7 @@ DEFAULT_CONFIG = {
         "Documentation", "Testing", "pytest"
     ],
     "labels": ["stellar-wave"],
+    "wave_program_id": DEFAULT_WAVE_PROGRAM,
     "slots": 15,
     "pitch": "I'm a self-taught Python & backend developer and open-source contributor. I focus on clean, tested code and love shipping real features end to end.",
     "links": {
@@ -364,6 +368,98 @@ def cmd_refill(args, cfg):
     cmd_dashboard(argparse.Namespace(), cfg)
 
 
+def drips_filters(cfg: dict) -> str:
+    raw = json.dumps(
+        {
+            "state": "open",
+            "waveProgramId": cfg.get("wave_program_id") or DEFAULT_WAVE_PROGRAM,
+            "applicantAssigned": "false",
+            "hasApplications": "false",
+        },
+        separators=(",", ":"),
+    )
+    return parse.quote(base64.b64encode(raw.encode()).decode(), safe="")
+
+
+def drips_fetch_page(cfg: dict, page: int) -> list[dict]:
+    url = f"{DRIPS_ISSUES_URL}?filters={drips_filters(cfg)}"
+    if page > 1:
+        url += f"&page={page}"
+    req = request.Request(url, headers={"User-Agent": "Mozilla/5.0 (drips-wave-helper)"})
+    with request.urlopen(req, timeout=45) as resp:
+        page_html = resp.read().decode("utf-8", "ignore")
+    m = re.search(r'data-url="[^"]*/api/issues[^"]*"[^>]*>(.*?)</script>', page_html, re.S)
+    if not m:
+        return []
+    try:
+        inner = json.loads(json.loads(m.group(1)).get("body", "{}"))
+    except Exception:
+        return []
+    return inner.get("data", [])
+
+
+def fetch_drips_noapps(cfg: dict, samples: int = 4) -> list[dict]:
+    """Drips' public page only exposes the top ~10 (most recently updated) issues.
+    We sample a few times and de-dupe to widen coverage."""
+    found: dict[str, dict] = {}
+    for i in range(samples):
+        try:
+            items = drips_fetch_page(cfg, 1)
+        except Exception as e:
+            log(f"Drips fetch {i + 1} failed: {e}")
+            continue
+        for it in items:
+            repo = it.get("repo", {}).get("gitHubRepoFullName")
+            num = it.get("gitHubIssueNumber")
+            if not repo or not num:
+                continue
+            key = f"{repo}#{num}"
+            found[key] = {
+                "key": key,
+                "repo": repo,
+                "number": num,
+                "title": it.get("title", ""),
+                "body": (it.get("body") or "")[:4000],
+                "url": f"https://github.com/{repo}/issues/{num}",
+                "labels": [l["name"] for l in it.get("labels", [])],
+                "points": it.get("points"),
+                "complexity": it.get("complexity"),
+                "pending": it.get("pendingApplicationsCount", 0),
+                "created_at": it.get("gitHubCreatedAt", ""),
+                "updated_at": it.get("gitHubUpdatedAt", ""),
+            }
+    return list(found.values())
+
+
+def rank_drips(items: list[dict], cfg: dict) -> list[dict]:
+    rows = []
+    for it in items:
+        s, matched = score_issue(it, cfg)
+        row = dict(it)
+        row["score"] = s
+        row["matched"] = matched
+        rows.append(row)
+    rows.sort(key=lambda r: r["score"], reverse=True)
+    return rows
+
+
+def cmd_noapps(args, cfg):
+    items = fetch_drips_noapps(cfg, args.samples)
+    save_json(DATA / "drips_noapps.json", items)
+    rows = rank_drips(items, cfg)
+    log(f"{len(rows)} freshest open issues with NO applications yet (source: Drips).")
+    show = rows[: args.top] if args.top else rows
+    for r in show:
+        pts = f"{r.get('points')}pt" if r.get("points") is not None else "  -"
+        log(f"  {r['score']:>4}  {pts:>6}  {r['key']:<42} {r['title'][:46]}")
+    if args.draft:
+        APPS.mkdir(exist_ok=True)
+        for r in rows[: args.draft]:
+            safe = re.sub(r"[^a-zA-Z0-9]+", "-", r["key"]).strip("-")
+            (APPS / f"{safe}.md").write_text(draft_text(r, r["matched"], cfg), encoding="utf-8")
+        log(f"Prepared {min(args.draft, len(rows))} draft(s) in {APPS.name}/.")
+
+
 def cmd_fetch(args, cfg):
     fetch_issues(cfg)
 
@@ -610,36 +706,60 @@ def cmd_notifytest(args, cfg):
 
 
 def cmd_ci(args, cfg):
-    """Used by the GitHub Actions watcher: detect new issues / freed slots and write alert.md."""
-    issues, new_keys = fetch_issues(cfg)
+    """Watcher: detect new NO-APPLICATION issues (Drips) + freed slots, write alert.md."""
+    # secondary: new issues by GitHub label
+    _, gh_new = fetch_issues(cfg)
 
-    applied = load_json(STATE_PATH, {}).get("applied", {})
+    # primary: Drips issues with no applications
+    drips: list[dict] = []
+    try:
+        drips = fetch_drips_noapps(cfg, 4)
+    except Exception as e:
+        log(f"Drips fetch failed: {e}")
+    new_drips: list[dict] = []
+    if drips:
+        state = load_json(STATE_PATH, {})
+        seen_drips = set(state.get("seen_drips", []))
+        ranked_drips = rank_drips(drips, cfg)
+        cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=90)
+
+        def is_fresh(it: dict) -> bool:
+            try:
+                t = dt.datetime.fromisoformat(it["created_at"].replace("Z", "+00:00"))
+                return t >= cutoff
+            except Exception:
+                return False
+
+        new_drips = [r for r in ranked_drips if r["key"] not in seen_drips and is_fresh(r)]
+        # remember everything we saw so we only alert on genuinely new issues
+        state["seen_drips"] = sorted(seen_drips | {r["key"] for r in ranked_drips})
+        save_json(STATE_PATH, state)
+
+    state = load_json(STATE_PATH, {})
+    applied = state.get("applied", {})
     freed = [r for r in (evaluate_slots(cfg) if applied else []) if r["freed"]]
 
-    if not new_keys and not freed:
+    if not new_drips and not gh_new and not freed:
         log("Nothing new — no alert.")
         if ALERT_PATH.exists():
             ALERT_PATH.unlink()
         return
 
-    rows = ranked(cfg)
-    new_set = set(new_keys)
-    new_rows = [r for r in rows if r["key"] in new_set]
-
     out: list[str] = []
-    if new_rows:
+    if new_drips:
         out += [
-            f"# 🆕 {len(new_rows)} new Stellar Wave issue(s)",
+            f"# 🔥 {len(new_drips)} new issue(s) with NO applications",
             "",
-            "Fresh issues matching your skills. **Open each one to apply** — this is just an alert.",
+            "Nobody has applied yet — grab these first.",
             "",
-            "| # | Issue | Score | Matched |",
-            "|---|-------|------:|---------|",
+            "| # | Issue | Points | Score | Matched |",
+            "|---|-------|-------:|------:|---------|",
         ]
-        for i, r in enumerate(new_rows, 1):
-            out.append(f"| {i} | [{r['key']}]({r['url']}) — {r['title'][:70]} | {r['score']} | {', '.join(r['matched'][:4]) or '—'} |")
+        for i, r in enumerate(new_drips, 1):
+            pts = r.get("points") if r.get("points") is not None else "-"
+            out.append(f"| {i} | [{r['key']}]({r['url']}) — {r['title'][:70]} | {pts} | {r['score']} | {', '.join(r['matched'][:4]) or '—'} |")
         out += ["", "## Drafts", ""]
-        for r in new_rows:
+        for r in new_drips:
             out += [
                 f"### [{r['key']}]({r['url']}) — {r['title']}",
                 "",
@@ -652,6 +772,11 @@ def cmd_ci(args, cfg):
                 "</details>",
                 "",
             ]
+    if gh_new:
+        out += [f"# 🆕 {len(gh_new)} new stellar-wave issue(s) (GitHub label)", ""]
+        for k in gh_new[:40]:
+            out.append(f"- {k}")
+        out.append("")
     if freed:
         out += [
             f"# ♻️ {len(freed)} slot(s) freed up",
@@ -664,8 +789,8 @@ def cmd_ci(args, cfg):
         out.append("")
 
     ALERT_PATH.write_text("\n".join(out), encoding="utf-8")
-    log(f"Wrote {ALERT_PATH.name} ({len(new_rows)} new, {len(freed)} freed).")
-    notify_all(new_rows, freed)
+    log(f"Wrote {ALERT_PATH.name} ({len(new_drips)} no-app, {len(gh_new)} gh, {len(freed)} freed).")
+    notify_all(new_drips, freed)
 
 
 def cmd_run(args, cfg):
@@ -705,6 +830,12 @@ def main():
     sub.add_parser("status", help="show slot usage").set_defaults(func=cmd_status)
     sub.add_parser("slots", help="check which of your 15 slots freed up").set_defaults(func=cmd_slots)
     sub.add_parser("refill", help="prepare drafts to refill free slots").set_defaults(func=cmd_refill)
+
+    pn = sub.add_parser("noapps", help="list freshest open issues with NO applications (from Drips)")
+    pn.add_argument("--samples", type=int, default=6, help="refresh samples (10 issues each)")
+    pn.add_argument("--top", type=int, default=30)
+    pn.add_argument("--draft", type=int, default=0, help="also prepare this many drafts")
+    pn.set_defaults(func=cmd_noapps)
 
     pm = sub.add_parser("mark", help="mark an issue applied/skipped")
     pm.add_argument("ref", help="owner/repo#123 or the issue URL")
