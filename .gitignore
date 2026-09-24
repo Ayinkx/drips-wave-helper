@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+data/
+applications/
+dashboard.html
+config.json
