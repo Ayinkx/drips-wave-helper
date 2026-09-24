@@ -476,6 +476,64 @@ document.querySelectorAll('.copy').forEach(function(b){{
     webbrowser.open(DASHBOARD_PATH.as_uri())
 
 
+def http_post_json(url: str, payload: dict) -> int:
+    data = json.dumps(payload).encode("utf-8")
+    req = request.Request(url, data=data, headers={"Content-Type": "application/json", "User-Agent": "drips-wave-helper"})
+    with request.urlopen(req, timeout=30) as resp:
+        return resp.status
+
+
+def notify_discord(text: str) -> bool:
+    url = (os.environ.get("DISCORD_WEBHOOK") or "").strip()
+    if not url:
+        return False
+    try:
+        http_post_json(url, {"content": text[:1900]})
+        return True
+    except Exception as e:
+        log(f"Discord notify failed: {e}")
+        return False
+
+
+def notify_telegram(text: str) -> bool:
+    token = (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
+    chat = (os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
+    if not token or not chat:
+        return False
+    try:
+        http_post_json(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            {"chat_id": chat, "text": text[:4000], "disable_web_page_preview": True},
+        )
+        return True
+    except Exception as e:
+        log(f"Telegram notify failed: {e}")
+        return False
+
+
+def notify_all(new_rows: list[dict]) -> None:
+    n = len(new_rows)
+    lines = [f"🆕 {n} new Stellar Wave issue(s)!", ""]
+    for r in new_rows[:8]:
+        lines.append(f"• {r['key']} — {r['title'][:70]}")
+        lines.append(f"  {r['url']}")
+    if n > 8:
+        lines.append(f"…and {n - 8} more")
+    lines += ["", "Apply on Drips: https://www.drips.network/wave/stellar/issues"]
+    text = "\n".join(lines)
+    if notify_discord(text):
+        log("Discord alert sent.")
+    if notify_telegram(text):
+        log("Telegram alert sent.")
+
+
+def cmd_notifytest(args, cfg):
+    d = notify_discord("✅ Discord alerts connected for drips-wave-helper.")
+    t = notify_telegram("✅ Telegram alerts connected for drips-wave-helper.")
+    log(f"Discord:  {'sent' if d else 'not configured / failed'}")
+    log(f"Telegram: {'sent' if t else 'not configured / failed'}")
+
+
 def cmd_ci(args, cfg):
     """Used by the GitHub Actions watcher: detect new issues and write alert.md."""
     issues, new_keys = fetch_issues(cfg)
@@ -515,6 +573,7 @@ def cmd_ci(args, cfg):
         ]
     ALERT_PATH.write_text("\n".join(out), encoding="utf-8")
     log(f"Wrote {ALERT_PATH.name} with {len(new_rows)} new issue(s).")
+    notify_all(new_rows)
 
 
 def cmd_run(args, cfg):
@@ -565,6 +624,7 @@ def main():
 
     sub.add_parser("dashboard", help="build dashboard.html").set_defaults(func=cmd_dashboard)
     sub.add_parser("ci", help="CI mode: detect new issues and write alert.md").set_defaults(func=cmd_ci)
+    sub.add_parser("test-notify", help="send a test Discord + Telegram alert").set_defaults(func=cmd_notifytest)
     sub.add_parser("run", help="fetch + draft remaining slots + dashboard").set_defaults(func=cmd_run)
 
     args = p.parse_args()
