@@ -201,13 +201,14 @@ def fetch_issues(cfg: dict) -> list[dict]:
     new_keys = [i["key"] for i in result if i["key"] not in seen_keys]
     save_json(ISSUES_PATH, result)
 
-    state = load_json(STATE_PATH, {})
-    state.setdefault("seen", [])
-    for k in (i["key"] for i in result):
-        if k not in state["seen"]:
-            state["seen"].append(k)
-    state["last_fetch"] = dt.datetime.now().isoformat(timespec="seconds")
-    save_json(STATE_PATH, state)
+    if new_keys:
+        state = load_json(STATE_PATH, {})
+        state.setdefault("seen", [])
+        for k in new_keys:
+            if k not in state["seen"]:
+                state["seen"].append(k)
+        state["last_fetch"] = dt.datetime.now().isoformat(timespec="seconds")
+        save_json(STATE_PATH, state)
 
     log(f"Fetched {len(result)} open stellar-wave issues.")
     if new_keys:
