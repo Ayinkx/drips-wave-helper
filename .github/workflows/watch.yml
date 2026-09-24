@@ -2,8 +2,8 @@ name: Wave watcher
 
 on:
   schedule:
-    # every 6 hours (UTC)
-    - cron: "0 */6 * * *"
+    # every 15 minutes (UTC)
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 concurrency:
