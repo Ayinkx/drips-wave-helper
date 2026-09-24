@@ -108,6 +108,7 @@
   ],
   "last_fetch": "2026-09-24T13:20:48",
   "seen_drips": [
+    "AudioBitsStellar/AudioBlocks_Frontend_v1#80",
     "Betta-Pay/BettaPay-Frontend#758",
     "Betta-Pay/BettaPay-Frontend#759",
     "Betta-Pay/BettaPay-Frontend#760",
@@ -123,6 +124,7 @@
     "DistinctCodes/AssetsUp#1404",
     "DistinctCodes/AssetsUp#1407",
     "DistinctCodes/AssetsUp#1412",
+    "DonCervantes/x402-Handle#22",
     "FinesseStudioLab/Trivela#327",
     "Gen-x-academy/chainVerse-backend#1152",
     "Gen-x-academy/chainVerse-backend#1153",
@@ -160,6 +162,8 @@
     "Obiajulu-gif/vaultquest-archive#729",
     "Obiajulu-gif/vaultquest-archive#731",
     "Obiajulu-gif/vaultquest-archive#733",
+    "Rejira-Technologies/predictx-web#118",
+    "Samuel1-ona/Hunty-contract#809",
     "SoroScan/soroscan#1409",
     "SoroScan/soroscan#1411",
     "SoroScan/soroscan#1418",
@@ -195,6 +199,7 @@
     "yosemite01/stellar-creator-portfolio#1420",
     "yosemite01/stellar-creator-portfolio#1421",
     "yosemite01/stellar-creator-portfolio#1424",
-    "yosemite01/stellar-creator-portfolio#1427"
+    "yosemite01/stellar-creator-portfolio#1427",
+    "zeekman/Cross-Border-Payment-App-for-Africa#1201"
   ]
 }
