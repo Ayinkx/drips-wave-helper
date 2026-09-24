@@ -297,6 +297,73 @@ def remaining_slots(cfg: dict) -> int:
     return max(0, int(cfg["slots"]) - len(applied))
 
 
+def issue_status(repo: str, number: int, token: str | None) -> dict:
+    data = api_get(f"{API}/repos/{repo}/issues/{number}", token)
+    return {
+        "state": data.get("state"),
+        "assignees": [a["login"] for a in data.get("assignees", [])],
+    }
+
+
+def evaluate_slots(cfg: dict) -> list[dict]:
+    """For each applied issue, work out whether the slot is still active or has freed up."""
+    applied = load_json(STATE_PATH, {}).get("applied", {})
+    if not applied:
+        return []
+    token = gh_token()
+    me = (cfg.get("github_username") or "").lower()
+    rows = []
+    for key in applied:
+        repo, num = key.rsplit("#", 1)
+        try:
+            st = issue_status(repo, int(num), token)
+        except SystemExit:
+            st = {"state": "unknown", "assignees": []}
+        others = [a for a in st["assignees"] if a.lower() != me]
+        if st["state"] == "closed":
+            freed, reason = True, "issue closed"
+        elif others:
+            freed, reason = True, f"assigned to {', '.join(others)}"
+        else:
+            freed, reason = False, "active (yours)"
+        rows.append({"key": key, "state": st["state"], "assignees": st["assignees"], "freed": freed, "reason": reason})
+    return rows
+
+
+def cmd_slots(args, cfg):
+    rows = evaluate_slots(cfg)
+    active = [r for r in rows if not r["freed"]]
+    freed = [r for r in rows if r["freed"]]
+    log(f"Slots: {len(active)} / {cfg['slots']} active   (free: {cfg['slots'] - len(active)})")
+    for r in active:
+        log(f"  ● {r['key']}  — {r['reason']}")
+    for r in freed:
+        log(f"  ○ {r['key']}  FREED — {r['reason']}")
+    if freed:
+        log("Run `python wave.py refill` to prepare replacements.")
+
+
+def cmd_refill(args, cfg):
+    rows = evaluate_slots(cfg)
+    active = sum(1 for r in rows if not r["freed"])
+    remaining = max(0, int(cfg["slots"]) - active)
+    if remaining == 0:
+        log(f"All {cfg['slots']} slots are full. 🎉")
+        return
+    issues = ranked(cfg)
+    applied = load_json(STATE_PATH, {}).get("applied", {})
+    picks = [r for r in issues if r["key"] not in applied][:remaining]
+    APPS.mkdir(exist_ok=True)
+    for r in picks:
+        safe = re.sub(r"[^a-zA-Z0-9]+", "-", r["key"]).strip("-")
+        (APPS / f"{safe}.md").write_text(draft_text(r, r["matched"], cfg), encoding="utf-8")
+    log(f"{remaining} slot(s) free — prepared {len(picks)} draft(s):")
+    for r in picks:
+        log(f"  • {r['key']:<34} score {r['score']:<3}  {r['title'][:56]}")
+    log("Apply each on Drips, then: python wave.py mark <repo#num> --applied")
+    cmd_dashboard(argparse.Namespace(), cfg)
+
+
 def cmd_fetch(args, cfg):
     fetch_issues(cfg)
 
@@ -511,15 +578,23 @@ def notify_telegram(text: str) -> bool:
         return False
 
 
-def notify_all(new_rows: list[dict]) -> None:
-    n = len(new_rows)
-    lines = [f"🆕 {n} new Stellar Wave issue(s)!", ""]
-    for r in new_rows[:8]:
-        lines.append(f"• {r['key']} — {r['title'][:70]}")
-        lines.append(f"  {r['url']}")
-    if n > 8:
-        lines.append(f"…and {n - 8} more")
-    lines += ["", "Apply on Drips: https://www.drips.network/wave/stellar/issues"]
+def notify_all(new_rows: list[dict], freed_rows: list[dict] | None = None) -> None:
+    freed_rows = freed_rows or []
+    lines: list[str] = []
+    if new_rows:
+        lines += [f"🆕 {len(new_rows)} new Stellar Wave issue(s)!", ""]
+        for r in new_rows[:8]:
+            lines.append(f"• {r['key']} — {r['title'][:70]}")
+            lines.append(f"  {r['url']}")
+        if len(new_rows) > 8:
+            lines.append(f"…and {len(new_rows) - 8} more")
+        lines.append("")
+    if freed_rows:
+        lines += [f"♻️ {len(freed_rows)} slot(s) freed up — refill now!", ""]
+        for r in freed_rows[:8]:
+            lines.append(f"• {r['key']} — {r['reason']}")
+        lines.append("")
+    lines.append("Apply on Drips: https://www.drips.network/wave/stellar/issues")
     text = "\n".join(lines)
     if notify_discord(text):
         log("Discord alert sent.")
@@ -535,10 +610,14 @@ def cmd_notifytest(args, cfg):
 
 
 def cmd_ci(args, cfg):
-    """Used by the GitHub Actions watcher: detect new issues and write alert.md."""
+    """Used by the GitHub Actions watcher: detect new issues / freed slots and write alert.md."""
     issues, new_keys = fetch_issues(cfg)
-    if not new_keys:
-        log("No new issues — nothing to alert.")
+
+    applied = load_json(STATE_PATH, {}).get("applied", {})
+    freed = [r for r in (evaluate_slots(cfg) if applied else []) if r["freed"]]
+
+    if not new_keys and not freed:
+        log("Nothing new — no alert.")
         if ALERT_PATH.exists():
             ALERT_PATH.unlink()
         return
@@ -547,33 +626,46 @@ def cmd_ci(args, cfg):
     new_set = set(new_keys)
     new_rows = [r for r in rows if r["key"] in new_set]
 
-    out = [
-        f"# 🆕 {len(new_rows)} new Stellar Wave issue(s)",
-        "",
-        "Fresh issues matching your skills. **Open each one to apply** — this is just an alert.",
-        "",
-        "| # | Issue | Score | Matched |",
-        "|---|-------|------:|---------|",
-    ]
-    for i, r in enumerate(new_rows, 1):
-        out.append(f"| {i} | [{r['key']}]({r['url']}) — {r['title'][:70]} | {r['score']} | {', '.join(r['matched'][:4]) or '—'} |")
-    out += ["", "## Drafts", ""]
-    for r in new_rows:
+    out: list[str] = []
+    if new_rows:
         out += [
-            f"### [{r['key']}]({r['url']}) — {r['title']}",
+            f"# 🆕 {len(new_rows)} new Stellar Wave issue(s)",
             "",
-            "<details><summary>Application draft</summary>",
+            "Fresh issues matching your skills. **Open each one to apply** — this is just an alert.",
             "",
-            "```",
-            draft_text(r, r["matched"], cfg).strip(),
-            "```",
+            "| # | Issue | Score | Matched |",
+            "|---|-------|------:|---------|",
+        ]
+        for i, r in enumerate(new_rows, 1):
+            out.append(f"| {i} | [{r['key']}]({r['url']}) — {r['title'][:70]} | {r['score']} | {', '.join(r['matched'][:4]) or '—'} |")
+        out += ["", "## Drafts", ""]
+        for r in new_rows:
+            out += [
+                f"### [{r['key']}]({r['url']}) — {r['title']}",
+                "",
+                "<details><summary>Application draft</summary>",
+                "",
+                "```",
+                draft_text(r, r["matched"], cfg).strip(),
+                "```",
+                "",
+                "</details>",
+                "",
+            ]
+    if freed:
+        out += [
+            f"# ♻️ {len(freed)} slot(s) freed up",
             "",
-            "</details>",
+            "Run `python wave.py refill` to prepare replacements, then apply on Drips.",
             "",
         ]
+        for r in freed:
+            out.append(f"- **{r['key']}** — {r['reason']}")
+        out.append("")
+
     ALERT_PATH.write_text("\n".join(out), encoding="utf-8")
-    log(f"Wrote {ALERT_PATH.name} with {len(new_rows)} new issue(s).")
-    notify_all(new_rows)
+    log(f"Wrote {ALERT_PATH.name} ({len(new_rows)} new, {len(freed)} freed).")
+    notify_all(new_rows, freed)
 
 
 def cmd_run(args, cfg):
@@ -611,6 +703,8 @@ def main():
     pd.set_defaults(func=cmd_draft)
 
     sub.add_parser("status", help="show slot usage").set_defaults(func=cmd_status)
+    sub.add_parser("slots", help="check which of your 15 slots freed up").set_defaults(func=cmd_slots)
+    sub.add_parser("refill", help="prepare drafts to refill free slots").set_defaults(func=cmd_refill)
 
     pm = sub.add_parser("mark", help="mark an issue applied/skipped")
     pm.add_argument("ref", help="owner/repo#123 or the issue URL")
