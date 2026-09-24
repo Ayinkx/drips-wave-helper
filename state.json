@@ -227,7 +227,10 @@
     "MDTechLabs/BridgeWise#1059",
     "MDTechLabs/BridgeWise#1063",
     "MDTechLabs/GasGuard#885",
+    "MergeFi/frontend#391",
     "MergeFi/frontend#393",
+    "MergeFi/frontend#398",
+    "MergeFi/frontend#400",
     "MettaChain/PropChain-FrontEnd#1083",
     "Netwalls/BOXMEOUT_STELLA#1183",
     "Netwalls/BOXMEOUT_STELLA#1185",
@@ -418,6 +421,8 @@
     "cocor-tech/moistello-backend#349",
     "cocor-tech/moistello-contracts#457",
     "cocor-tech/moistello-frontend#413",
+    "determined-001/Quay#253",
+    "determined-001/Quay#255",
     "fanilabs/fanilab-smartcontract#378",
     "fanilabs/fanilab-smartcontract#395",
     "fanilabs/fanilab-smartcontract#399",
@@ -483,6 +488,7 @@
     "yosemite01/stellar-creator-portfolio#1421",
     "yosemite01/stellar-creator-portfolio#1424",
     "yosemite01/stellar-creator-portfolio#1427",
+    "zeekman/Cross-Border-Payment-App-for-Africa#1122",
     "zeekman/Cross-Border-Payment-App-for-Africa#1201"
   ]
 }
