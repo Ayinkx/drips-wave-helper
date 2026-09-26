@@ -592,6 +592,10 @@
     "JSE-ORG/trust-link-contract#913",
     "JSE-ORG/trust-link-contract#914",
     "JSE-ORG/trust-link-contract#921",
+    "JSE-ORG/trust-link-contract#987",
+    "JSE-ORG/trust-link-contract#988",
+    "JSE-ORG/trust-link-contract#989",
+    "JSE-ORG/trust-link-contract#990",
     "JSE-ORG/trust-link-frontend#744",
     "JSE-ORG/trust-link-frontend#749",
     "JSE-ORG/trust-link-frontend#791",
@@ -678,6 +682,7 @@
     "LumenTix-HQ/lumentix#1218",
     "MDTechLabs/BridgeWise#1059",
     "MDTechLabs/BridgeWise#1063",
+    "MDTechLabs/BridgeWise#1101",
     "MDTechLabs/GasGuard#885",
     "Maki-Zeninn/stellar-router#1337",
     "Maki-Zeninn/stellar-router#1339",
@@ -1853,6 +1858,7 @@
     "zkpayroll/zk-payroll-dashboard#292",
     "zkpayroll/zk-payroll-dashboard#294",
     "zkpayroll/zk-payroll-dashboard#296",
+    "zkpayroll/zk-payroll-dashboard#515",
     "zkpayroll/zk-payroll-dashboard#518",
     "zkpayroll/zk-payroll-dashboard#520"
   ]
