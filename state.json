@@ -358,6 +358,14 @@
     "DonCervantes/x402-Handle#22",
     "DonCervantes/x402-Handle#25",
     "DonCervantes/x402-Handle#29",
+    "Dorisio/frontend#52",
+    "Dorisio/frontend#54",
+    "Dorisio/frontend#55",
+    "Dorisio/frontend#56",
+    "Dorisio/frontend#57",
+    "Dorisio/frontend#58",
+    "Dorisio/frontend#59",
+    "Dorisio/frontend#60",
     "EF-CHAIN/SendAm#441",
     "EF-CHAIN/SendAm#442",
     "EF-CHAIN/SendAm#443",
@@ -1234,6 +1242,9 @@
     "StellarYield/StellarYield-Contracts#1136",
     "StellarYield/StellarYield-Contracts#1137",
     "StellarYield/StellarYield-Contracts#1138",
+    "Stellarkard/Stellar_Card#391",
+    "Stellarkard/Stellar_Card#392",
+    "Stellarkard/Stellar_Card#393",
     "StellerCraft/craft#1268",
     "StreamGive/streamgive-contracts#100",
     "StreamGive/streamgive-contracts#102",
@@ -1841,6 +1852,8 @@
     "zkpayroll/zk-payroll-dashboard#291",
     "zkpayroll/zk-payroll-dashboard#292",
     "zkpayroll/zk-payroll-dashboard#294",
-    "zkpayroll/zk-payroll-dashboard#296"
+    "zkpayroll/zk-payroll-dashboard#296",
+    "zkpayroll/zk-payroll-dashboard#518",
+    "zkpayroll/zk-payroll-dashboard#520"
   ]
 }
