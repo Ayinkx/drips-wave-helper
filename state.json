@@ -224,6 +224,8 @@
     "Akanimoh12/Stellar-iPredict#539",
     "Akanimoh12/Stellar-iPredict#540",
     "Akanimoh12/Stellar-iPredict#542",
+    "Akanimoh12/Stellar-iPredict#570",
+    "Akanimoh12/Stellar-iPredict#577",
     "Akazajan/Oraculum#470",
     "AlienScroll78/vesting-cliff-drip-stream#836",
     "Anchor-kit/anchor-kit#567",
@@ -1253,6 +1255,7 @@
     "MDTechLabs/BridgeWise#1104",
     "MDTechLabs/BridgeWise#1105",
     "MDTechLabs/BridgeWise#1209",
+    "MDTechLabs/BridgeWise#1223",
     "MDTechLabs/GasGuard#885",
     "Maki-Zeninn/stellar-router#1283",
     "Maki-Zeninn/stellar-router#1284",
@@ -1361,6 +1364,7 @@
     "Navin-xmr/navin-contracts#926",
     "Navin-xmr/navin-contracts#990",
     "Navin-xmr/navin-contracts#991",
+    "Ndifreke000/stellar-insights#2340",
     "Ndifreke000/stellar-insights#2358",
     "Ndifreke000/stellar-insights#2359",
     "Ndifreke000/stellar-insights#2360",
@@ -2939,6 +2943,8 @@
     "chunks-labz/predinex-stellar#1257",
     "chunks-labz/predinex-stellar#1259",
     "chunks-labz/predinex-stellar#1260",
+    "chunks-labz/predinex-stellar#1277",
+    "chunks-labz/predinex-stellar#1279",
     "chunks-labz/predinex-stellar#1281",
     "chunks-labz/predinex-stellar#1283",
     "cocor-tech/moistello-backend#327",
@@ -3567,6 +3573,7 @@
     "vjuliaife/TariffShield#944",
     "vjuliaife/TariffShield#945",
     "vjuliaife/TariffShield#947",
+    "yosemite01/stellar-creator-portfolio#1352",
     "yosemite01/stellar-creator-portfolio#1385",
     "yosemite01/stellar-creator-portfolio#1416",
     "yosemite01/stellar-creator-portfolio#1418",
@@ -3604,6 +3611,7 @@
     "zkpayroll/zk-payroll-dashboard#544",
     "zkpayroll/zk-payroll-dashboard#545",
     "zkpayroll/zk-payroll-dashboard#546",
-    "zkpayroll/zk-payroll-dashboard#547"
+    "zkpayroll/zk-payroll-dashboard#547",
+    "zkpayroll/zk-payroll-dashboard#582"
   ]
 }
