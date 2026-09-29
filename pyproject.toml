@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drips-wave-helper"
+version = "0.1.0"
+description = "Find, rank and draft applications for Stellar Wave (Drips) open issues."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "Lawal Olayinka Awal", email = "olayinkaawal00@gmail.com" }]
+keywords = ["stellar", "drips", "wave", "open-source", "cli", "bounties"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Ayinkx/drips-wave-helper"
+Repository = "https://github.com/Ayinkx/drips-wave-helper"
+Issues = "https://github.com/Ayinkx/drips-wave-helper/issues"
+Changelog = "https://github.com/Ayinkx/drips-wave-helper/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+py-modules = ["wave"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"

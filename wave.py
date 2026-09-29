@@ -147,6 +147,7 @@ def api_get(url: str, token: str | None) -> dict:
 
 
 def word_in(hay: str, needle: str) -> bool:
+    hay = hay.lower()
     return re.search(r"(?<![a-z0-9])" + re.escape(needle.lower()) + r"(?![a-z0-9])", hay) is not None
 
 
