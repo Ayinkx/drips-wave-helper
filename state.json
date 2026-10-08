@@ -3616,6 +3616,7 @@
     "amina69/PetAd-Frontend#469",
     "amina69/PetAd-Frontend#478",
     "amina69/PetAd-Frontend#526",
+    "anchor-tools/stellar-toml-lint#47",
     "anchor-tools/stellar-toml-lint#88",
     "anumukul/Stellar-work-#1044",
     "anumukul/Stellar-work-#986",
@@ -4568,6 +4569,10 @@
     "zkpayroll/zk-payroll-dashboard#545",
     "zkpayroll/zk-payroll-dashboard#546",
     "zkpayroll/zk-payroll-dashboard#547",
-    "zkpayroll/zk-payroll-dashboard#582"
+    "zkpayroll/zk-payroll-dashboard#582",
+    "zkpayroll/zk-payroll-dashboard#625",
+    "zkpayroll/zk-payroll-dashboard#626",
+    "zkpayroll/zk-payroll-dashboard#627",
+    "zkpayroll/zk-payroll-dashboard#628"
   ]
 }
